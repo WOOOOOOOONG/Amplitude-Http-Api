@@ -7,7 +7,6 @@ use App\Services\Marketing\Amplitude\Dtos\AmplitudeEventDto;
 use App\Services\Marketing\Amplitude\Dtos\AmplitudeIdentifyEventDto;
 use App\Services\Marketing\Amplitude\Dtos\AmplitudeResponseDto;
 use App\Services\Marketing\Amplitude\Exceptions\AmplitudeException;
-use Duse\Peterpanz\DuseLog\DuseLogFacade;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Log;
 
@@ -28,9 +27,6 @@ class SendAmplitudeEventHandler
     /** @var AmplitudeResponseDto 응답 데이터 */
     private $response;
 
-    /** @var DuseLogFacade  */
-    private $logger;
-
     /**
      * SendAmplitudeEventHandler 생성자.
      *
@@ -41,7 +37,6 @@ class SendAmplitudeEventHandler
     {
         $this->app = $app;
         $this->amplitudeManager = $amplitudeManager;
-        $this->logger = DuseLogFacade::channel('marketing');
     }
 
     /**
@@ -82,7 +77,7 @@ class SendAmplitudeEventHandler
                 $this->response = $this->amplitudeManager->sendIdentify($this->dto);
 
                 // 로깅
-                $this->logger->debug('[Amplitude] identify sent', [
+                Log::debug('[Amplitude] identify sent', [
                     'user_id' => $this->dto->userId,
                     'device_id' => $this->dto->deviceId,
                     'response' => $this->response->toArray()
@@ -93,34 +88,34 @@ class SendAmplitudeEventHandler
                 $this->response = $this->amplitudeManager->sendEvent($this->dto);
 
                 // 로깅
-                $this->logger->debug('[Amplitude] event sent', [
+                Log::debug('[Amplitude] event sent', [
                     'event_type' => $this->dto->eventType,
                     'user_id' => $this->dto->userId,
                     'response' => $this->response->toArray()
                 ]);
 
             } else {
-                $this->logger->warning('Unsupported DTO type: ', [
+                Log::warning('Unsupported DTO type: ', [
                     'dto_class' => get_class($this->dto)
                 ]);
             }
 
             // 실패한 경우 로깅
             if (!$this->response->isSuccess()) {
-                $this->logger->warning('Amplitude request failed', [
+                Log::warning('Amplitude request failed', [
                     'error' => $this->response->getErrorDetails(),
                     'response' => $this->response->toArray()
                 ]);
             }
 
         } catch (AmplitudeException $e) {
-            $this->logger->error('Amplitude error', [
+            Log::error('Amplitude error', [
                 'message' => $e->getMessage(),
                 'response_data' => $e->getResponseData()
             ]);
             throw $e;
         } catch (\Throwable $e) {
-            $this->logger->error('Unexpected error sending to Amplitude', [
+            Log::error('Unexpected error sending to Amplitude', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
